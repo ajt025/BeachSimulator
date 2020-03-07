@@ -1,5 +1,10 @@
 #include "Window.h"
 
+#ifndef STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+#endif
+
 /* 
  * Declare your variables below. Unnamed namespace is used here to avoid 
  * declaring global or static variables.
@@ -7,9 +12,8 @@
 namespace
 {
 	int width, height;
-	std::string windowTitle("GLFW Starter Project");
+	std::string windowTitle("Beach Simulator");
 
-	Cube* cube;
 	Object* currentObj; // The object currently displaying.
 
 	glm::vec3 eye(0, 0, 20); // Camera position.
@@ -22,23 +26,101 @@ namespace
 	glm::mat4 projection; // Projection matrix.
 
 	GLuint program; // The shader program id.
+    GLuint skyboxProgram; // Skybox shader program id
+
+    // Normal Shader Locs
 	GLuint projectionLoc; // Location of projection in shader.
 	GLuint viewLoc; // Location of view in shader.
 	GLuint modelLoc; // Location of model in shader.
 	GLuint colorLoc; // Location of color in shader.
+
+    // Skybox PV Locs
+    GLuint projectionSkyLoc; // Location of projection in shader.
+    GLuint viewSkyLoc; // Location of view in shader.
+
+    // Skybox buffers
+    GLuint skyboxVAO, skyboxVBO;
+
+    // Skybox texture
+    GLuint cubemapTexture;
+
+    // faceBoxes strings
+    std::vector<std::string> boxFaces = {
+        "skybox/right.jpg",
+        "skybox/left.jpg",
+        "skybox/top.jpg",
+        "skybox/bottom.jpg",
+        "skybox/front.jpg",
+        "skybox/back.jpg"
+    };
+
+    // Predefined skybox vertices
+    float skyboxVertices[] = {
+        // positions
+        -1000.0f,  1000.0f, -1000.0f,
+        -1000.0f, -1000.0f, -1000.0f,
+         1000.0f, -1000.0f, -1000.0f,
+         1000.0f, -1000.0f, -1000.0f,
+         1000.0f,  1000.0f, -1000.0f,
+        -1000.0f,  1000.0f, -1000.0f,
+
+        -1000.0f, -1000.0f,  1000.0f,
+        -1000.0f, -1000.0f, -1000.0f,
+        -1000.0f,  1000.0f, -1000.0f,
+        -1000.0f,  1000.0f, -1000.0f,
+        -1000.0f,  1000.0f,  1000.0f,
+        -1000.0f, -1000.0f,  1000.0f,
+
+         1000.0f, -1000.0f, -1000.0f,
+         1000.0f, -1000.0f,  1000.0f,
+         1000.0f,  1000.0f,  1000.0f,
+         1000.0f,  1000.0f,  1000.0f,
+         1000.0f,  1000.0f, -1000.0f,
+         1000.0f, -1000.0f, -1000.0f,
+
+        -1000.0f, -1000.0f,  1000.0f,
+        -1000.0f,  1000.0f,  1000.0f,
+         1000.0f,  1000.0f,  1000.0f,
+         1000.0f,  1000.0f,  1000.0f,
+         1000.0f, -1000.0f,  1000.0f,
+        -1000.0f, -1000.0f,  1000.0f,
+
+        -1000.0f,  1000.0f, -1000.0f,
+         1000.0f,  1000.0f, -1000.0f,
+         1000.0f,  1000.0f,  1000.0f,
+         1000.0f,  1000.0f,  1000.0f,
+        -1000.0f,  1000.0f,  1000.0f,
+        -1000.0f,  1000.0f, -1000.0f,
+
+        -1000.0f, -1000.0f, -1000.0f,
+        -1000.0f, -1000.0f,  1000.0f,
+         1000.0f, -1000.0f, -1000.0f,
+         1000.0f, -1000.0f, -1000.0f,
+        -1000.0f, -1000.0f,  1000.0f,
+         1000.0f, -1000.0f,  1000.0f
+    };
 };
 
 bool Window::initializeProgram()
 {
 	// Create a shader program with a vertex shader and a fragment shader.
 	program = LoadShaders("shaders/shader.vert", "shaders/shader.frag");
-
+    
+    // Create skybox shader program with a vertex shader and a fragment shader.
+    skyboxProgram = LoadShaders("shaders/skybox.vert", "shaders/skybox.frag");
+    
 	// Check the shader program.
 	if (!program)
 	{
 		std::cerr << "Failed to initialize shader program" << std::endl;
 		return false;
 	}
+    
+    if (!skyboxProgram)
+    {
+        std::cerr << "Failed to initialize shader program" << std::endl;
+        return false;
+    }
 
 	// Activate the shader program.
 	glUseProgram(program);
@@ -48,16 +130,29 @@ bool Window::initializeProgram()
 	modelLoc = glGetUniformLocation(program, "model");
 	colorLoc = glGetUniformLocation(program, "color");
 
+    glUseProgram(skyboxProgram);
+    // Get the locations of uniform variables.
+    projectionSkyLoc = glGetUniformLocation(skyboxProgram, "projectionSky");
+    viewSkyLoc = glGetUniformLocation(skyboxProgram, "viewSky");
+    
 	return true;
 }
 
 bool Window::initializeObjects()
 {
-	// Create a cube of size 5.
-	cube = new Cube(5.0f);
-
-	// Set cube to be the first to display
-	currentObj = cube;
+    glUseProgram(skyboxProgram);
+    
+    // skybox VAO
+    glGenVertexArrays(1, &skyboxVAO);
+    glGenBuffers(1, &skyboxVBO);
+    glBindVertexArray(skyboxVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    
+    // Skybox textures
+    cubemapTexture = loadCubemap(boxFaces);
 
 	return true;
 }
@@ -69,6 +164,7 @@ void Window::cleanUp()
 
 	// Delete the shader program.
 	glDeleteProgram(program);
+    glDeleteProgram(skyboxProgram);
 }
 
 GLFWwindow* Window::createWindow(int width, int height)
@@ -146,26 +242,28 @@ void Window::resizeCallback(GLFWwindow* window, int w, int h)
 }
 
 void Window::idleCallback()
-{
-	// Perform any updates as necessary. 
-	currentObj->update();
-}
+{}
 
 void Window::displayCallback(GLFWwindow* window)
 {
 	// Clear the color and depth buffers.
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+    // Skybox Shader Drawing
+    glDepthFunc(GL_LEQUAL);
+    glUseProgram(skyboxProgram);
 
-	// Specify the values of the uniform variables we are going to use.
-	glm::mat4 model = currentObj->getModel();
-	glm::vec3 color = currentObj->getColor();
-	glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
-	glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-	glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-	glUniform3fv(colorLoc, 1, glm::value_ptr(color));
+    glUniformMatrix4fv(projectionSkyLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(viewSkyLoc, 1, GL_FALSE, glm::value_ptr(view));
 
-	// Render the object.
-	currentObj->draw();
+    glBindVertexArray(skyboxVAO);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1); // no padding on bytes
+
+    glBindVertexArray(0);
+    glDepthFunc(GL_LESS);
 
 	// Gets events, including input such as keyboard and mouse or window resizing.
 	glfwPollEvents();
@@ -175,10 +273,6 @@ void Window::displayCallback(GLFWwindow* window)
 
 void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-	/*
-	 * TODO: Modify below to add your key callbacks.
-	 */
-
 	 // Check for a key press.
 	if (action == GLFW_PRESS)
 	{
@@ -188,12 +282,43 @@ void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, 
 			// Close the window. This causes the program to also terminate.
 			glfwSetWindowShouldClose(window, GL_TRUE);
 			break;
-		case GLFW_KEY_1:
-			// Set currentObj to cube
-			currentObj = cube;
-			break;
 		default:
 			break;
 		}
 	}
+}
+
+// Helpers
+
+// Not using texture.cpp, OpenGL version of cubemap loading
+GLuint Window::loadCubemap(std::vector<std::string> boxFaces)
+{
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+    int width, height, nrChannels;
+    for (GLuint i = 0; i < boxFaces.size(); i++)
+    {
+        unsigned char *data = stbi_load(boxFaces[i].c_str(), &width, &height, &nrChannels, 0);
+        if (data)
+        {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                         0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+            );
+            stbi_image_free(data);
+        }
+        else
+        {
+            std::cout << "Cubemap texture failed to load at path: " << boxFaces[i] << std::endl;
+            stbi_image_free(data);
+        }
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    
+    return textureID;
 }
