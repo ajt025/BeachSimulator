@@ -14,6 +14,8 @@ void setupCallbacks(GLFWwindow* window)
 	glfwSetKeyCallback(window, Window::keyCallback);
 	// Set the window resize callback.
 	glfwSetWindowSizeCallback(window, Window::resizeCallback);
+    // Set the cursor pos callback
+    glfwSetCursorPosCallback(window, Window::cursor_position_callback);
 }
 
 void setupOpenglSettings()
@@ -26,6 +28,7 @@ void setupOpenglSettings()
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	// Set clear color to black.
 	glClearColor(0.0, 0.0, 0.0, 0.0);
+    
 }
 
 void printVersions()
@@ -54,6 +57,8 @@ int main(void)
 	setupCallbacks(window);
 	// Setup OpenGL settings.
 	setupOpenglSettings();
+    // Tell glfw to eat mouse input
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	// Initialize the shader program; exit if initialization fails.
 	if (!Window::initializeProgram()) exit(EXIT_FAILURE);
 	// Initialize objects/pointers for rendering; exit if initialization fails.

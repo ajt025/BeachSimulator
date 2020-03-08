@@ -14,14 +14,18 @@ namespace
 	int width, height;
 	std::string windowTitle("Beach Simulator");
 
+    // Cursor position
+    glm::vec2 lastPos;
+    GLboolean firstMouse = true;
+
 	Object* currentObj; // The object currently displaying.
 
-	glm::vec3 eye(0, 0, 20); // Camera position.
-	glm::vec3 center(0, 0, 0); // The point we are looking at.
-	glm::vec3 up(0, 1, 0); // The up direction of the camera.
-	float fovy = 60;
-	float near = 1;
-	float far = 1000;
+	glm::vec3 eye(0.0f, 0.0f, 0.0f); // Camera position.
+	glm::vec3 center(0.0f, 0.0f, -1.0f); // The point we are looking at.
+	glm::vec3 up(0.0f, 1.0f, 0.0f); // The up direction of the camera.
+	float fovy = 60.0f;
+	float near = 1.0f;
+	float far = 1000.0f;
 	glm::mat4 view = glm::lookAt(eye, center, up); // View matrix, defined by eye, center and up.
 	glm::mat4 projection; // Projection matrix.
 
@@ -44,8 +48,10 @@ namespace
     // Skybox texture
     GLuint cubemapTexture;
 
+// ***      WINDOW CONSTANTS     *** //
+
     // faceBoxes strings
-    std::vector<std::string> boxFaces = {
+    const std::vector<std::string> boxFaces = {
         "skybox/right.jpg",
         "skybox/left.jpg",
         "skybox/top.jpg",
@@ -55,7 +61,7 @@ namespace
     };
 
     // Predefined skybox vertices
-    float skyboxVertices[] = {
+    const float skyboxVertices[] = {
         // positions
         -1000.0f,  1000.0f, -1000.0f,
         -1000.0f, -1000.0f, -1000.0f,
@@ -99,6 +105,8 @@ namespace
         -1000.0f, -1000.0f,  1000.0f,
          1000.0f, -1000.0f,  1000.0f
     };
+
+const GLfloat m_ROTSCALE = 0.002f;
 };
 
 bool Window::initializeProgram()
@@ -159,9 +167,6 @@ bool Window::initializeObjects()
 
 void Window::cleanUp()
 {
-	// Deallcoate the objects.
-	delete cube;
-
 	// Delete the shader program.
 	glDeleteProgram(program);
     glDeleteProgram(skyboxProgram);
@@ -282,10 +287,56 @@ void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, 
 			// Close the window. This causes the program to also terminate.
 			glfwSetWindowShouldClose(window, GL_TRUE);
 			break;
+        case GLFW_KEY_W:
+            // TODO Move forward
+            break;
+        case GLFW_KEY_S:
+            // TODO Move backward
+            break;
+        case GLFW_KEY_A:
+            // TODO Move left
+            break;
+        case GLFW_KEY_D:
+            // TODO Move right
+            break;
 		default:
 			break;
 		}
 	}
+}
+
+void Window::cursor_position_callback(GLFWwindow* window, GLdouble xpos, GLdouble ypos) {
+    if (firstMouse) {
+        lastPos = glm::vec2(xpos, ypos);
+        firstMouse = false;
+    }
+    
+    glm::vec2 currPos = glm::vec2(xpos, ypos);
+    // Get the delta of cursor pos's and create direction vector
+    glm::vec2 direction = currPos - lastPos;
+    
+    glm::vec3 toRotateAround = glm::cross(center, up);
+    glm::mat4 xRotator = glm::rotate(-direction.x * m_ROTSCALE, up);
+    glm::mat4 yRotator = glm::rotate(-direction.y * m_ROTSCALE, toRotateAround);
+    
+    // Create two rotators conditionally
+    // xyRotator created and applied for bounds checking on center
+    // If outside y bounds, only apply the x rotator and update cameraview mat to be as so
+    glm::mat4 xyRotator = xRotator * yRotator;
+    
+    glm::vec3 tempCenterXY = glm::mat3(xyRotator) * center;
+    glm::vec3 tempCenterX = glm::mat3(xRotator) * center;
+        
+    if (tempCenterXY.y > -0.90f && tempCenterXY.y < 0.90f) {
+        view = glm::lookAt(eye, tempCenterXY, up); // rotate on X and Y in normal bounds
+        center = tempCenterXY;
+    } else {
+        view = glm::lookAt(eye, tempCenterX, up); // out of y bounds, only rotate on X
+        center = tempCenterX; // update center
+    }
+    
+    // Update last pos for cursor delta
+    lastPos = currPos;
 }
 
 // Helpers
