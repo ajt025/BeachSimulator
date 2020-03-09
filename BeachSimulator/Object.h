@@ -10,6 +10,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 #include <vector>
+#include "glm/gtx/string_cast.hpp"
+#include <iostream>
 
 class Object
 {

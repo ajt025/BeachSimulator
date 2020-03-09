@@ -11,12 +11,17 @@
  */
 namespace
 {
+
 	int width, height;
 	std::string windowTitle("Beach Simulator");
 
-	Object* currentObj; // The object currently displaying.
+    glm::vec3 color = glm::vec3(0.5f, 0.5f, 1.0f);
+    glm::mat4 model = glm::mat4(1);
 
-	glm::vec3 eye(0, 0, 20); // Camera position.
+	Object* currentObj; // The object currently displaying.
+    PointCloud* ocean; 
+
+	glm::vec3 eye(0, 3, 3); // Camera position.
 	glm::vec3 center(0, 0, 0); // The point we are looking at.
 	glm::vec3 up(0, 1, 0); // The up direction of the camera.
 	float fovy = 60;
@@ -33,7 +38,8 @@ namespace
 	GLuint viewLoc; // Location of view in shader.
 	GLuint modelLoc; // Location of model in shader.
 	GLuint colorLoc; // Location of color in shader.
-
+    GLuint timeLoc; // Location of time in shader.
+    GLfloat time = 0.0f;
     // Skybox PV Locs
     GLuint projectionSkyLoc; // Location of projection in shader.
     GLuint viewSkyLoc; // Location of view in shader.
@@ -129,7 +135,8 @@ bool Window::initializeProgram()
 	viewLoc = glGetUniformLocation(program, "view");
 	modelLoc = glGetUniformLocation(program, "model");
 	colorLoc = glGetUniformLocation(program, "color");
-
+    timeLoc = glGetUniformLocation(program, "t");
+    
     glUseProgram(skyboxProgram);
     // Get the locations of uniform variables.
     projectionSkyLoc = glGetUniformLocation(skyboxProgram, "projectionSky");
@@ -140,6 +147,9 @@ bool Window::initializeProgram()
 
 bool Window::initializeObjects()
 {
+    ocean = new PointCloud("ocean.obj");
+    currentObj = ocean;
+    
     glUseProgram(skyboxProgram);
     
     // skybox VAO
@@ -153,15 +163,14 @@ bool Window::initializeObjects()
     
     // Skybox textures
     cubemapTexture = loadCubemap(boxFaces);
-
+    
 	return true;
 }
 
 void Window::cleanUp()
 {
 	// Deallcoate the objects.
-	delete cube;
-
+    delete ocean;
 	// Delete the shader program.
 	glDeleteProgram(program);
     glDeleteProgram(skyboxProgram);
@@ -242,14 +251,26 @@ void Window::resizeCallback(GLFWwindow* window, int w, int h)
 }
 
 void Window::idleCallback()
-{}
+{
+}
 
 void Window::displayCallback(GLFWwindow* window)
 {
 	// Clear the color and depth buffers.
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
+	
+    time = time + 1.0f;
+    glUseProgram(program);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glUniform3fv(colorLoc, 1, glm::value_ptr(color));
+    glUniform1f(timeLoc, time);
+
+    currentObj->draw();
+
     // Skybox Shader Drawing
+    
     glDepthFunc(GL_LEQUAL);
     glUseProgram(skyboxProgram);
 
@@ -264,7 +285,7 @@ void Window::displayCallback(GLFWwindow* window)
 
     glBindVertexArray(0);
     glDepthFunc(GL_LESS);
-
+    
 	// Gets events, including input such as keyboard and mouse or window resizing.
 	glfwPollEvents();
 	// Swap buffers.
@@ -287,6 +308,8 @@ void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, 
 		}
 	}
 }
+
+
 
 // Helpers
 

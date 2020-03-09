@@ -14,6 +14,7 @@ void setupCallbacks(GLFWwindow* window)
 	glfwSetKeyCallback(window, Window::keyCallback);
 	// Set the window resize callback.
 	glfwSetWindowSizeCallback(window, Window::resizeCallback);
+
 }
 
 void setupOpenglSettings()

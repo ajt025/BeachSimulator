@@ -9,21 +9,37 @@
 layout (location = 0) in vec3 position;
 layout (location = 1) in vec3 normal;
 
-// Uniform variables can be updated by fetching their location and passing values to that location
 uniform mat4 projection;
 uniform mat4 view;
 uniform mat4 model;
+uniform vec3 color;
+uniform float t;
+out vec3 norm;
+out vec3 FragPos;
+vec3 pos2;
 
-// Outputs of the vertex shader are the inputs of the same name of the fragment shader.
-// The default output, gl_Position, should be assigned something. You can define as many
-// extra outputs as you need.
-out vec3 normalizedNormal;
-
+float frequency = 4.0;
+float amplitude = 0.2;
+float timestep = 100.0;
+vec3 dv_dx;
+vec3 dv_dz;
+vec3 n;
 void main()
 {
-    // OpenGL maintains the D matrix so you only need to multiply by P, V (aka C inverse), and M
-    gl_Position = projection * view * model * vec4(position, 1.0);
     
-    // normalize the normals
-    normalizedNormal = (0.5f * normalize(normal)) + 0.5f;
+    pos2 = position;
+    pos2.y = amplitude * (sin(frequency * position.x + t/timestep ) - cos(frequency * position.z + t/timestep));
+    
+    dv_dx = vec3(1.0, amplitude*cos(frequency * position.x+t/timestep) * frequency, 0.0);
+    dv_dz = vec3(0.0, amplitude*cos(frequency * position.z+t/timestep) * frequency, 1.0);
+    n = cross(dv_dx, dv_dz);
+    norm = normalize(n);
+
+    gl_Position = projection * view * model * vec4(pos2, 1.0);
+
+    FragPos = vec3(model * vec4(position, 1.0));
+    
+    
+    //normalizedNormal = (0.5f * normalize(n)) + 0.5f;
+    //normalizedNormal = color;
 }

@@ -20,6 +20,7 @@
 #include "Object.h"
 #include "Cube.h"
 #include "shader.h"
+#include "PointCloud.h"
 
 class Window
 {
