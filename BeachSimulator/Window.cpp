@@ -15,9 +15,9 @@ namespace
 	int width, height;
 	std::string windowTitle("Beach Simulator");
 
-    glm::vec3 color = glm::vec3(0.5f, 0.5f, 1.0f);
-    glm::mat4 model = glm::mat4(1);
-
+    glm::vec3 oceanColor = glm::vec3(0.5f, 0.5f, 1.0f);
+    glm::mat4 oceanModel = glm::mat4(1);
+    
     // Cursor position
     glm::vec2 lastPos;
     GLboolean firstMouse = true;
@@ -25,7 +25,7 @@ namespace
 	Object* currentObj; // The object currently displaying.
     PointCloud* ocean;
 
-	glm::vec3 eye(0.0f, 0.0f, 0.0f); // Camera position.
+	glm::vec3 eye(0.0f, 0.0f, 0.1f); // Camera position.
 	glm::vec3 center(0.0f, 0.0f, -1.0f); // The point we are looking at.
 	glm::vec3 up(0.0f, 1.0f, 0.0f); // The up direction of the camera.
 	float fovy = 60.0f;
@@ -114,7 +114,7 @@ namespace
     };
 
 const GLfloat m_ROTSCALE = 0.002f;
-const GLfloat m_MOVEMENTSCALE = 0.005f;
+const GLfloat m_MOVEMENTSCALE = 0.5f;
 };
 
 bool Window::initializeProgram()
@@ -159,7 +159,8 @@ bool Window::initializeObjects()
 {
     ocean = new PointCloud("ocean.obj");
     currentObj = ocean;
-    
+    oceanModel = glm::scale(oceanModel, glm::vec3(10.0f, 10.0f, 10.0f));
+    oceanModel = glm::translate(oceanModel, glm::vec3(0.0f, 0.0f, -10.0f));
     glUseProgram(skyboxProgram);
     
     // skybox VAO
@@ -277,8 +278,8 @@ void Window::displayCallback(GLFWwindow* window)
 
     glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-    glUniform3fv(colorLoc, 1, glm::value_ptr(color));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(oceanModel));
+    glUniform3fv(colorLoc, 1, glm::value_ptr(oceanColor));
     glUniform1f(timeLoc, time);
 
     currentObj->draw();
@@ -369,11 +370,13 @@ void Window::move(Direction direction) {
         view = glm::lookAt(eye, eye + center, up);
         break;
     case LEFT:
-        eye += glm::normalize(glm::cross(eye, up)) * m_MOVEMENTSCALE;
+        eye -= glm::normalize(glm::cross(center,up)) * m_MOVEMENTSCALE;
+        //eye += glm::vec3(-1.0, 0.0, 0.0) * m_MOVEMENTSCALE;
         view = glm::lookAt(eye, eye + center, up);
         break;
     case RIGHT:
-        eye -= glm::normalize(glm::cross(eye, up)) * m_MOVEMENTSCALE;
+        eye += glm::normalize(glm::cross(center, up)) * m_MOVEMENTSCALE;
+        //eye -= glm::vec3(-1.0, 0.0, 0.0) * m_MOVEMENTSCALE;
         view = glm::lookAt(eye, eye + center, up);
         break;
     default:
