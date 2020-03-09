@@ -19,6 +19,7 @@ namespace
     GLboolean firstMouse = true;
 
 	Object* currentObj; // The object currently displaying.
+    Cube* cube; // Left in for camera testing
 
 	glm::vec3 eye(0.0f, 0.0f, 0.0f); // Camera position.
 	glm::vec3 center(0.0f, 0.0f, -1.0f); // The point we are looking at.
@@ -107,6 +108,7 @@ namespace
     };
 
 const GLfloat m_ROTSCALE = 0.002f;
+const GLfloat m_MOVEMENTSCALE = 0.005f;
 };
 
 bool Window::initializeProgram()
@@ -148,6 +150,10 @@ bool Window::initializeProgram()
 
 bool Window::initializeObjects()
 {
+    cube = new Cube(1.0f);
+    
+    currentObj = cube;
+    
     glUseProgram(skyboxProgram);
     
     // skybox VAO
@@ -167,6 +173,8 @@ bool Window::initializeObjects()
 
 void Window::cleanUp()
 {
+    delete cube;
+    
 	// Delete the shader program.
 	glDeleteProgram(program);
     glDeleteProgram(skyboxProgram);
@@ -254,6 +262,19 @@ void Window::displayCallback(GLFWwindow* window)
 	// Clear the color and depth buffers.
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
+    glUseProgram(program);
+    
+    // Specify the values of the uniform variables we are going to use.
+    glm::mat4 model = currentObj->getModel();
+    glm::vec3 color = currentObj->getColor();
+    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glUniform3fv(colorLoc, 1, glm::value_ptr(color));
+
+    // Render the object.
+    currentObj->draw();
+    
     // Skybox Shader Drawing
     glDepthFunc(GL_LEQUAL);
     glUseProgram(skyboxProgram);
@@ -287,18 +308,6 @@ void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, 
 			// Close the window. This causes the program to also terminate.
 			glfwSetWindowShouldClose(window, GL_TRUE);
 			break;
-        case GLFW_KEY_W:
-            // TODO Move forward
-            break;
-        case GLFW_KEY_S:
-            // TODO Move backward
-            break;
-        case GLFW_KEY_A:
-            // TODO Move left
-            break;
-        case GLFW_KEY_D:
-            // TODO Move right
-            break;
 		default:
 			break;
 		}
@@ -328,10 +337,10 @@ void Window::cursor_position_callback(GLFWwindow* window, GLdouble xpos, GLdoubl
     glm::vec3 tempCenterX = glm::mat3(xRotator) * center;
         
     if (tempCenterXY.y > -0.90f && tempCenterXY.y < 0.90f) {
-        view = glm::lookAt(eye, tempCenterXY, up); // rotate on X and Y in normal bounds
+        view = glm::lookAt(eye, eye + tempCenterXY, up); // rotate on X and Y in normal bounds
         center = tempCenterXY;
     } else {
-        view = glm::lookAt(eye, tempCenterX, up); // out of y bounds, only rotate on X
+        view = glm::lookAt(eye, eye + tempCenterX, up); // out of y bounds, only rotate on X
         center = tempCenterX; // update center
     }
     
@@ -340,6 +349,29 @@ void Window::cursor_position_callback(GLFWwindow* window, GLdouble xpos, GLdoubl
 }
 
 // Helpers
+
+void Window::move(Direction direction) {
+    switch (direction) {
+    case FORWARD:
+        eye += m_MOVEMENTSCALE * center;
+        view = glm::lookAt(eye, eye + center, up);
+        break;
+    case BACKWARD:
+        eye -= m_MOVEMENTSCALE * center;
+        view = glm::lookAt(eye, eye + center, up);
+        break;
+    case LEFT:
+        eye += glm::normalize(glm::cross(eye, up)) * m_MOVEMENTSCALE;
+        view = glm::lookAt(eye, eye + center, up);
+        break;
+    case RIGHT:
+        eye -= glm::normalize(glm::cross(eye, up)) * m_MOVEMENTSCALE;
+        view = glm::lookAt(eye, eye + center, up);
+        break;
+    default:
+        break;
+    }
+}
 
 // Not using texture.cpp, OpenGL version of cubemap loading
 GLuint Window::loadCubemap(std::vector<std::string> boxFaces)

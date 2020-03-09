@@ -21,6 +21,13 @@
 #include "Cube.h"
 #include "shader.h"
 
+enum Direction {
+    FORWARD,
+    BACKWARD,
+    LEFT,
+    RIGHT
+};
+
 class Window
 {
 public:
@@ -35,6 +42,7 @@ public:
     static void cursor_position_callback(GLFWwindow* window, GLdouble xpos, GLdouble ypos);
     
     // helpers
+    static void move(Direction direction);
     static GLuint loadCubemap(std::vector<std::string> boxFaces);
 };
 

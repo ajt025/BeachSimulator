@@ -72,6 +72,22 @@ int main(void)
 
 		// Idle callback. Updating objects, etc. can be done here.
 		Window::idleCallback();
+        
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+            Window::move(FORWARD);
+        }
+        
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+            Window::move(BACKWARD);
+        }
+        
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+            Window::move(LEFT);
+        }
+        
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+            Window::move(RIGHT);
+        }
 	}
 
 	Window::cleanUp();
