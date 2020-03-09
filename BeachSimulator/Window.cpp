@@ -38,13 +38,16 @@ namespace
 	GLuint program; // The shader program id.
     GLuint skyboxProgram; // Skybox shader program id
 
+    // Terrain
+    Terrain* terrain;
+
     // Normal Shader Locs
 	GLuint projectionLoc; // Location of projection in shader.
 	GLuint viewLoc; // Location of view in shader.
 	GLuint modelLoc; // Location of model in shader.
 	GLuint colorLoc; // Location of color in shader.
     GLuint timeLoc; // Location of time in shader.
-    GLfloat time = 0.0f;
+    GLfloat waveCounter = 0.0f;
     // Skybox PV Locs
     GLuint projectionSkyLoc; // Location of projection in shader.
     GLuint viewSkyLoc; // Location of view in shader.
@@ -56,62 +59,6 @@ namespace
     GLuint cubemapTexture;
 
 // ***      WINDOW CONSTANTS     *** //
-
-    // faceBoxes strings
-    const std::vector<std::string> boxFaces = {
-        "skybox/right.jpg",
-        "skybox/left.jpg",
-        "skybox/top.jpg",
-        "skybox/bottom.jpg",
-        "skybox/front.jpg",
-        "skybox/back.jpg"
-    };
-
-    // Predefined skybox vertices
-    const float skyboxVertices[] = {
-        // positions
-        -1000.0f,  1000.0f, -1000.0f,
-        -1000.0f, -1000.0f, -1000.0f,
-         1000.0f, -1000.0f, -1000.0f,
-         1000.0f, -1000.0f, -1000.0f,
-         1000.0f,  1000.0f, -1000.0f,
-        -1000.0f,  1000.0f, -1000.0f,
-
-        -1000.0f, -1000.0f,  1000.0f,
-        -1000.0f, -1000.0f, -1000.0f,
-        -1000.0f,  1000.0f, -1000.0f,
-        -1000.0f,  1000.0f, -1000.0f,
-        -1000.0f,  1000.0f,  1000.0f,
-        -1000.0f, -1000.0f,  1000.0f,
-
-         1000.0f, -1000.0f, -1000.0f,
-         1000.0f, -1000.0f,  1000.0f,
-         1000.0f,  1000.0f,  1000.0f,
-         1000.0f,  1000.0f,  1000.0f,
-         1000.0f,  1000.0f, -1000.0f,
-         1000.0f, -1000.0f, -1000.0f,
-
-        -1000.0f, -1000.0f,  1000.0f,
-        -1000.0f,  1000.0f,  1000.0f,
-         1000.0f,  1000.0f,  1000.0f,
-         1000.0f,  1000.0f,  1000.0f,
-         1000.0f, -1000.0f,  1000.0f,
-        -1000.0f, -1000.0f,  1000.0f,
-
-        -1000.0f,  1000.0f, -1000.0f,
-         1000.0f,  1000.0f, -1000.0f,
-         1000.0f,  1000.0f,  1000.0f,
-         1000.0f,  1000.0f,  1000.0f,
-        -1000.0f,  1000.0f,  1000.0f,
-        -1000.0f,  1000.0f, -1000.0f,
-
-        -1000.0f, -1000.0f, -1000.0f,
-        -1000.0f, -1000.0f,  1000.0f,
-         1000.0f, -1000.0f, -1000.0f,
-         1000.0f, -1000.0f, -1000.0f,
-        -1000.0f, -1000.0f,  1000.0f,
-         1000.0f, -1000.0f,  1000.0f
-    };
 
 const GLfloat m_ROTSCALE = 0.002f;
 const GLfloat m_MOVEMENTSCALE = 0.5f;
@@ -161,6 +108,14 @@ bool Window::initializeObjects()
     currentObj = ocean;
     oceanModel = glm::scale(oceanModel, glm::vec3(10.0f, 10.0f, 10.0f));
     oceanModel = glm::translate(oceanModel, glm::vec3(0.0f, 0.0f, -10.0f));
+    
+    // ground init test
+    glUseProgram(program);
+    
+    terrain = new Terrain();
+    
+    // end test
+    
     glUseProgram(skyboxProgram);
     
     // skybox VAO
@@ -270,7 +225,7 @@ void Window::displayCallback(GLFWwindow* window)
 {
 	// Clear the color and depth buffers.
 
-    time = time + 1.0f;
+    waveCounter = waveCounter + 1.0f;
     glUseProgram(program);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
@@ -278,12 +233,14 @@ void Window::displayCallback(GLFWwindow* window)
 
     glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(oceanModel));
-    glUniform3fv(colorLoc, 1, glm::value_ptr(oceanColor));
-    glUniform1f(timeLoc, time);
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glUniform3fv(colorLoc, 1, glm::value_ptr(color));
+    glUniform1f(timeLoc, waveCounter);
 
     currentObj->draw();
-
+    
+    terrain->draw();
+    
     // Skybox Shader Drawing
     
     glDepthFunc(GL_LEQUAL);
