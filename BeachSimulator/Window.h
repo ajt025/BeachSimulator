@@ -22,6 +22,13 @@
 #include "shader.h"
 #include "PointCloud.h"
 
+enum Direction {
+    FORWARD,
+    BACKWARD,
+    LEFT,
+    RIGHT
+};
+
 class Window
 {
 public:
@@ -33,8 +40,10 @@ public:
 	static void idleCallback();
 	static void displayCallback(GLFWwindow*);
 	static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void cursor_position_callback(GLFWwindow* window, GLdouble xpos, GLdouble ypos);
     
     // helpers
+    static void move(Direction direction);
     static GLuint loadCubemap(std::vector<std::string> boxFaces);
 };
 

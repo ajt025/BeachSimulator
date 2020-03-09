@@ -18,15 +18,20 @@ namespace
     glm::vec3 color = glm::vec3(0.5f, 0.5f, 1.0f);
     glm::mat4 model = glm::mat4(1);
 
-	Object* currentObj; // The object currently displaying.
-    PointCloud* ocean; 
+    // Cursor position
+    glm::vec2 lastPos;
+    GLboolean firstMouse = true;
 
-	glm::vec3 eye(0, 3, 3); // Camera position.
-	glm::vec3 center(0, 0, 0); // The point we are looking at.
-	glm::vec3 up(0, 1, 0); // The up direction of the camera.
-	float fovy = 60;
-	float near = 1;
-	float far = 1000;
+	Object* currentObj; // The object currently displaying.
+    PointCloud* ocean;
+
+	glm::vec3 eye(0.0f, 0.0f, 0.0f); // Camera position.
+	glm::vec3 center(0.0f, 0.0f, -1.0f); // The point we are looking at.
+	glm::vec3 up(0.0f, 1.0f, 0.0f); // The up direction of the camera.
+	float fovy = 60.0f;
+	float near = 1.0f;
+	float far = 1000.0f;
+
 	glm::mat4 view = glm::lookAt(eye, center, up); // View matrix, defined by eye, center and up.
 	glm::mat4 projection; // Projection matrix.
 
@@ -50,8 +55,10 @@ namespace
     // Skybox texture
     GLuint cubemapTexture;
 
+// ***      WINDOW CONSTANTS     *** //
+
     // faceBoxes strings
-    std::vector<std::string> boxFaces = {
+    const std::vector<std::string> boxFaces = {
         "skybox/right.jpg",
         "skybox/left.jpg",
         "skybox/top.jpg",
@@ -61,7 +68,7 @@ namespace
     };
 
     // Predefined skybox vertices
-    float skyboxVertices[] = {
+    const float skyboxVertices[] = {
         // positions
         -1000.0f,  1000.0f, -1000.0f,
         -1000.0f, -1000.0f, -1000.0f,
@@ -105,6 +112,9 @@ namespace
         -1000.0f, -1000.0f,  1000.0f,
          1000.0f, -1000.0f,  1000.0f
     };
+
+const GLfloat m_ROTSCALE = 0.002f;
+const GLfloat m_MOVEMENTSCALE = 0.005f;
 };
 
 bool Window::initializeProgram()
@@ -171,6 +181,7 @@ void Window::cleanUp()
 {
 	// Deallcoate the objects.
     delete ocean;
+
 	// Delete the shader program.
 	glDeleteProgram(program);
     glDeleteProgram(skyboxProgram);
@@ -257,10 +268,13 @@ void Window::idleCallback()
 void Window::displayCallback(GLFWwindow* window)
 {
 	// Clear the color and depth buffers.
-	
+
     time = time + 1.0f;
     glUseProgram(program);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+    // Specify the values of the uniform variables we are going to use.
+
     glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
@@ -309,9 +323,63 @@ void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, 
 	}
 }
 
-
-
+void Window::cursor_position_callback(GLFWwindow* window, GLdouble xpos, GLdouble ypos) {
+    if (firstMouse) {
+        lastPos = glm::vec2(xpos, ypos);
+        firstMouse = false;
+    }
+    
+    glm::vec2 currPos = glm::vec2(xpos, ypos);
+    // Get the delta of cursor pos's and create direction vector
+    glm::vec2 direction = currPos - lastPos;
+    
+    glm::vec3 toRotateAround = glm::cross(center, up);
+    glm::mat4 xRotator = glm::rotate(-direction.x * m_ROTSCALE, up);
+    glm::mat4 yRotator = glm::rotate(-direction.y * m_ROTSCALE, toRotateAround);
+    
+    // Create two rotators conditionally
+    // xyRotator created and applied for bounds checking on center
+    // If outside y bounds, only apply the x rotator and update cameraview mat to be as so
+    glm::mat4 xyRotator = xRotator * yRotator;
+    
+    glm::vec3 tempCenterXY = glm::mat3(xyRotator) * center;
+    glm::vec3 tempCenterX = glm::mat3(xRotator) * center;
+        
+    if (tempCenterXY.y > -0.90f && tempCenterXY.y < 0.90f) {
+        view = glm::lookAt(eye, eye + tempCenterXY, up); // rotate on X and Y in normal bounds
+        center = tempCenterXY;
+    } else {
+        view = glm::lookAt(eye, eye + tempCenterX, up); // out of y bounds, only rotate on X
+        center = tempCenterX; // update center
+    }
+    
+    // Update last pos for cursor delta
+    lastPos = currPos;
+}
 // Helpers
+
+void Window::move(Direction direction) {
+    switch (direction) {
+    case FORWARD:
+        eye += m_MOVEMENTSCALE * center;
+        view = glm::lookAt(eye, eye + center, up);
+        break;
+    case BACKWARD:
+        eye -= m_MOVEMENTSCALE * center;
+        view = glm::lookAt(eye, eye + center, up);
+        break;
+    case LEFT:
+        eye += glm::normalize(glm::cross(eye, up)) * m_MOVEMENTSCALE;
+        view = glm::lookAt(eye, eye + center, up);
+        break;
+    case RIGHT:
+        eye -= glm::normalize(glm::cross(eye, up)) * m_MOVEMENTSCALE;
+        view = glm::lookAt(eye, eye + center, up);
+        break;
+    default:
+        break;
+    }
+}
 
 // Not using texture.cpp, OpenGL version of cubemap loading
 GLuint Window::loadCubemap(std::vector<std::string> boxFaces)
