@@ -21,7 +21,6 @@
 #include "Cube.h"
 #include "shader.h"
 #include "PointCloud.h"
-#include "Terrain.h"
 
 enum Direction {
     FORWARD,
@@ -30,65 +29,21 @@ enum Direction {
     RIGHT
 };
 
-// faceBoxes strings
-const std::vector<std::string> boxFaces = {
-    "skybox/right.jpg",
-    "skybox/left.jpg",
-    "skybox/top.jpg",
-    "skybox/bottom.jpg",
-    "skybox/front.jpg",
-    "skybox/back.jpg"
-};
 
-// Predefined skybox vertices
-const float skyboxVertices[] = {
-    // positions
-    -1000.0f,  1000.0f, -1000.0f,
-    -1000.0f, -1000.0f, -1000.0f,
-     1000.0f, -1000.0f, -1000.0f,
-     1000.0f, -1000.0f, -1000.0f,
-     1000.0f,  1000.0f, -1000.0f,
-    -1000.0f,  1000.0f, -1000.0f,
-
-    -1000.0f, -1000.0f,  1000.0f,
-    -1000.0f, -1000.0f, -1000.0f,
-    -1000.0f,  1000.0f, -1000.0f,
-    -1000.0f,  1000.0f, -1000.0f,
-    -1000.0f,  1000.0f,  1000.0f,
-    -1000.0f, -1000.0f,  1000.0f,
-
-     1000.0f, -1000.0f, -1000.0f,
-     1000.0f, -1000.0f,  1000.0f,
-     1000.0f,  1000.0f,  1000.0f,
-     1000.0f,  1000.0f,  1000.0f,
-     1000.0f,  1000.0f, -1000.0f,
-     1000.0f, -1000.0f, -1000.0f,
-
-    -1000.0f, -1000.0f,  1000.0f,
-    -1000.0f,  1000.0f,  1000.0f,
-     1000.0f,  1000.0f,  1000.0f,
-     1000.0f,  1000.0f,  1000.0f,
-     1000.0f, -1000.0f,  1000.0f,
-    -1000.0f, -1000.0f,  1000.0f,
-
-    -1000.0f,  1000.0f, -1000.0f,
-     1000.0f,  1000.0f, -1000.0f,
-     1000.0f,  1000.0f,  1000.0f,
-     1000.0f,  1000.0f,  1000.0f,
-    -1000.0f,  1000.0f,  1000.0f,
-    -1000.0f,  1000.0f, -1000.0f,
-
-    -1000.0f, -1000.0f, -1000.0f,
-    -1000.0f, -1000.0f,  1000.0f,
-     1000.0f, -1000.0f, -1000.0f,
-     1000.0f, -1000.0f, -1000.0f,
-    -1000.0f, -1000.0f,  1000.0f,
-     1000.0f, -1000.0f,  1000.0f
-};
 
 class Window
 {
 public:
+
+    struct Particle {
+        glm::vec3 Position, Velocity;
+        glm::vec4 Color;
+        GLfloat Life;
+
+        Particle()
+            : Position(0.0f), Velocity(0.0f), Color(1.0f), Life(0.0f) { }
+    };
+
 	static bool initializeProgram();
 	static bool initializeObjects();
 	static void cleanUp();
@@ -102,6 +57,12 @@ public:
     // helpers
     static void move(Direction direction);
     static GLuint loadCubemap(std::vector<std::string> boxFaces);
+    static GLuint FirstUnusedParticle();
+    static void RespawnParticle(Particle& particle, glm::vec3 offset);
+    static void drawParticles();
+    static void drawOcean();
+    static void drawPalmTree();
+
 };
 
 #endif

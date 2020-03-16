@@ -10,6 +10,8 @@ PointCloud::PointCloud(std::string objFilename)
 	float xn = 0.0f;
 	float yn = 0.0f;
 	float zn = 0.0f;
+	float xt = 0.0f;
+	float yt = 0.0f;
 	unsigned int v1 = 0;
 	unsigned int v2 = 0;
 	unsigned int v3 = 0;
@@ -33,6 +35,10 @@ PointCloud::PointCloud(std::string objFilename)
 				fscanf(fp, "%f %f %f", &xn, &yn, &zn);
 				normals.push_back(glm::vec3(xn, yn, zn));
 			}
+			else if (c2 == 't') {
+				fscanf(fp, "%f %f", &xt, &yt);
+				texPoints.push_back(glm::vec2(xt, yt));
+			}
 		}
 		else if (c1 == 'f') {
 			c2 = fgetc(fp);
@@ -50,6 +56,7 @@ PointCloud::PointCloud(std::string objFilename)
 	std::cout << "Points: " << points.size() << std::endl;
 	std::cout << "Indices: " << indices.size() << std::endl;
 	std::cout << "Normals: " << normals.size() << std::endl;
+	std::cout << "Tex: " << texPoints.size() << std::endl;
 	model = glm::mat4(1);
 	color = glm::vec3(1, 0, 0);
 
@@ -57,6 +64,7 @@ PointCloud::PointCloud(std::string objFilename)
 	glGenBuffers(1, &vbo);
 	glGenBuffers(1, &vbon);
 	glGenBuffers(1, &ebo);
+	glGenBuffers(1, &vbot);
 
 	glBindVertexArray(vao);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -68,6 +76,11 @@ PointCloud::PointCloud(std::string objFilename)
 	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * normals.size(), normals.data(), GL_STATIC_DRAW);
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbot);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * texPoints.size(), texPoints.data(), GL_STATIC_DRAW);
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), 0);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * indices.size(), indices.data(), GL_STATIC_DRAW);

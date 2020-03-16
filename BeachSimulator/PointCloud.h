@@ -19,8 +19,9 @@ class PointCloud : public Object
 private:
 	std::vector<glm::vec3> points;
 	std::vector<glm::vec3> normals;
+	std::vector<glm::vec2> texPoints;
 	std::vector<unsigned int> indices;
-	GLuint vao, vbo, vbon, ebo;
+	GLuint vao, vbo, vbon, ebo, vbot;
 public:
 	PointCloud(std::string objFilename);
 	~PointCloud();
