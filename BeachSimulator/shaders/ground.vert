@@ -7,17 +7,20 @@
 // The vertex shader gets called once per vertex.
 
 layout (location = 0) in vec3 position;
-
-out vec3 TexCoords;
+layout (location = 1) in vec2 texCoords;
+layout (location = 2) in vec3 normal;
 
 uniform mat4 projectionGround;
 uniform mat4 viewGround;
+uniform mat4 modelGround;
+
+out vec2 TexCoords;
+out vec3 normalOut;
 
 void main()
 {
-    TexCoords = position;
+    gl_Position = projectionGround * viewGround * modelGround * vec4(position, 1.0f);
     
-    vec4 pos = projectionSky * viewSky * vec4(position, 1.0);
-    gl_Position = pos.xyww;
-    
+    TexCoords = texCoords;
+    normalOut = (0.5f * normalize(normal)) + 0.5f;
 }

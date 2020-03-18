@@ -31,6 +31,8 @@ enum Direction {
 
 
 
+const GLfloat m_TERRAIN_SCALE = 32.0f;
+
 class Window
 {
 public:
@@ -56,6 +58,7 @@ public:
     
     // helpers
     static void move(Direction direction);
+    static void regenerateTerrain();
     static GLuint loadCubemap(std::vector<std::string> boxFaces);
     static GLuint FirstUnusedParticle();
     static void RespawnParticle(Particle& particle, glm::vec3 offset);

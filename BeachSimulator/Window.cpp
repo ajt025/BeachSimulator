@@ -28,7 +28,6 @@ namespace
 	Object* currentObj; // The object currently displaying.
     PointCloud* ocean;
 
-    
 	glm::vec3 eye(0.0f, 0.0f, 0.1f); // Camera position.
 	glm::vec3 center(0.0f, 0.0f, -1.0f); // The point we are looking at.
 	glm::vec3 up(0.0f, 1.0f, 0.0f); // The up direction of the camera.
@@ -46,6 +45,15 @@ namespace
     GLuint skyboxProgram; // Skybox shader program id
     GLuint particleProgram; // particle shader program id
     GLuint palmProgram;
+    GLuint groundProgram; // Ground shader program id
+
+    // Terrain
+    Terrain* terrain;
+    glm::mat4 terrainModel = glm::mat4(1.0f);
+    GLuint projectionGroundLoc;
+    GLuint viewGroundLoc;
+    GLuint modelGroundLoc;
+    GLuint sandFlagLoc;
 
     // Normal Shader Locs
 	GLuint projectionLoc; // Location of projection in shader.
@@ -84,6 +92,8 @@ namespace
     GLfloat dt = 1.0f;
 
 
+// ***      WINDOW FLAGS        *** //
+    GLint sandFlag = 1;
 // ***      WINDOW CONSTANTS     *** //
 
     // faceBoxes strings
@@ -160,6 +170,9 @@ bool Window::initializeProgram()
 
     palmProgram = LoadShaders("shaders/palm.vert", "shaders/palm.frag");
     
+    // Create ground plane shader program
+    groundProgram = LoadShaders("shaders/ground.vert", "shaders/ground.frag");
+    
 	// Check the shader program.
 	if (!program)
 	{
@@ -168,6 +181,12 @@ bool Window::initializeProgram()
 	}
     
     if (!skyboxProgram)
+    {
+        std::cerr << "Failed to initialize shader program" << std::endl;
+        return false;
+    }
+    
+    if (!groundProgram)
     {
         std::cerr << "Failed to initialize shader program" << std::endl;
         return false;
@@ -212,6 +231,13 @@ bool Window::initializeProgram()
     palmViewLoc = glGetUniformLocation(palmProgram, "view");
     palmModelLoc = glGetUniformLocation(palmProgram, "model");
     palmColorLoc = glGetUniformLocation(palmProgram, "color");
+
+    glUseProgram(groundProgram);
+    
+    projectionGroundLoc = glGetUniformLocation(groundProgram, "projectionGround");
+    viewGroundLoc = glGetUniformLocation(groundProgram, "viewGround");
+    modelGroundLoc = glGetUniformLocation(groundProgram, "modelGround");
+    sandFlagLoc = glGetUniformLocation(groundProgram, "sandFlag");
 
 	return true;
 }
@@ -345,18 +371,27 @@ bool Window::initializeObjects()
     }
     stbi_image_free(data3);
 
+    
+    glUseProgram(groundProgram);
+    
+    terrain = new Terrain();
+    terrainModel = glm::scale(terrainModel, glm::vec3(m_TERRAIN_SCALE));
+    
+	return true;
 }
 
 void Window::cleanUp()
 {
 	// Deallcoate the objects.
     delete ocean;
+    delete terrain;
 
 	// Delete the shader program.
 	glDeleteProgram(program);
     glDeleteProgram(skyboxProgram);
     glDeleteProgram(particleProgram);
     glDeleteProgram(palmProgram);
+    glDeleteProgram(groundProgram);
 }
 
 GLFWwindow* Window::createWindow(int width, int height)
@@ -487,9 +522,31 @@ void Window::displayCallback(GLFWwindow* window)
     glUseProgram(program);
     drawOcean();
 
+    
+    // Specify the values of the uniform variables we are going to use.
+
+    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(oceanModel));
+    glUniform3fv(colorLoc, 1, glm::value_ptr(oceanColor));
+    glUniform1f(timeLoc, waveCounter);
+
+    currentObj->draw();
+    
+    // Ground Shader Drawing
+    glUseProgram(groundProgram);
+    
+    glUniformMatrix4fv(projectionGroundLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(viewGroundLoc, 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(modelGroundLoc, 1, GL_FALSE, glm::value_ptr(terrainModel));
+    glUniform1i(sandFlagLoc, sandFlag);
+    
+    terrain->render();
+    
+    // Skybox Shader Drawing
+    
     glDepthFunc(GL_LEQUAL);
     glUseProgram(skyboxProgram);
-
 
     glUniformMatrix4fv(projectionSkyLoc, 1, GL_FALSE, glm::value_ptr(projection));
     glUniformMatrix4fv(viewSkyLoc, 1, GL_FALSE, glm::value_ptr(view));
@@ -503,10 +560,10 @@ void Window::displayCallback(GLFWwindow* window)
     glBindVertexArray(0);
     glDepthFunc(GL_LESS);
     
-    glfwPollEvents();
-    glfwSwapBuffers(window);
-    
-
+	// Gets events, including input such as keyboard and mouse or window resizing.
+	glfwPollEvents();
+	// Swap buffers.
+	glfwSwapBuffers(window);
 }
 
 void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -520,12 +577,17 @@ void Window::keyCallback(GLFWwindow* window, int key, int scancode, int action, 
 			// Close the window. This causes the program to also terminate.
 			glfwSetWindowShouldClose(window, GL_TRUE);
 			break;
+        case GLFW_KEY_1:
+            sandFlag = !sandFlag;
+            break;
+        case GLFW_KEY_R:
+            regenerateTerrain();
+            break;
 		default:
 			break;
 		}
 	}
 }
-
 
 void Window::cursor_position_callback(GLFWwindow* window, GLdouble xpos, GLdouble ypos) {
     
@@ -587,7 +649,12 @@ void Window::move(Direction direction) {
     default:
         break;
     }
-    
+}
+
+// Delete old terrain and create new Terrain object (for demo purposes)
+void Window::regenerateTerrain() {
+    delete terrain;
+    terrain = new Terrain();
 }
 
 // Not using texture.cpp, OpenGL version of cubemap loading
