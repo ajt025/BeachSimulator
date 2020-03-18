@@ -62,7 +62,7 @@ namespace
 	GLuint colorLoc; // Location of color in shader.
     GLuint timeLoc; // Location of time in shader.
     GLuint cameraPosLoc; // Location of camera position in shader.
-    GLfloat time = 0.0f;
+    GLfloat waveTime = 0.0f;
     // Skybox PV Locs
     GLuint projectionSkyLoc; // Location of projection in shader.
     GLuint viewSkyLoc; // Location of view in shader.
@@ -182,25 +182,25 @@ bool Window::initializeProgram()
     
     if (!skyboxProgram)
     {
-        std::cerr << "Failed to initialize shader program" << std::endl;
-        return false;
-    }
-    
-    if (!groundProgram)
-    {
-        std::cerr << "Failed to initialize shader program" << std::endl;
+        std::cerr << "Failed to initialize skybox program" << std::endl;
         return false;
     }
 
     if (!particleProgram)
     {
-        std::cerr << "Failed to initialize shader program" << std::endl;
+        std::cerr << "Failed to initialize particle program" << std::endl;
         return false;
     }
 
     if (!palmProgram)
     {
-        std::cerr << "Failed to initialize shader program" << std::endl;
+        std::cerr << "Failed to initialize palm program" << std::endl;
+        return false;
+    }
+    
+    if (!groundProgram)
+    {
+        std::cerr << "Failed to initialize ground program" << std::endl;
         return false;
     }
 
@@ -518,7 +518,7 @@ void Window::displayCallback(GLFWwindow* window)
     glUseProgram(particleProgram);
     drawParticles();
 
-    time = time + 1.0f;
+    waveTime = waveTime + 1.0f;
     glUseProgram(program);
     drawOcean();
 
@@ -529,7 +529,7 @@ void Window::displayCallback(GLFWwindow* window)
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(oceanModel));
     glUniform3fv(colorLoc, 1, glm::value_ptr(oceanColor));
-    glUniform1f(timeLoc, waveCounter);
+    glUniform1f(timeLoc, waveTime);
 
     currentObj->draw();
     
@@ -766,7 +766,7 @@ void Window::drawOcean() {
     glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(oceanModel));
     glUniform3fv(colorLoc, 1, glm::value_ptr(oceanColor));
     glUniform3fv(cameraPosLoc, 1, glm::value_ptr(eye));
-    glUniform1f(timeLoc, time);
+    glUniform1f(timeLoc, waveTime);
     glBindTexture(GL_TEXTURE_2D, oceanTexture);
     currentObj->draw();
 }

@@ -11,7 +11,6 @@ uniform vec3 cameraPos;
 uniform sampler2D ourTexture;
 
 
-in vec3 norm;
 in vec3 FragPos;
 in vec2 texCoord;
 out vec4 fragColor;

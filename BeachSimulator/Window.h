@@ -21,6 +21,7 @@
 #include "Cube.h"
 #include "shader.h"
 #include "PointCloud.h"
+#include "Terrain.h"
 
 enum Direction {
     FORWARD,

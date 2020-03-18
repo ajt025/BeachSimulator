@@ -15,7 +15,6 @@ uniform mat4 view;
 uniform mat4 model;
 uniform vec3 color;
 uniform float t;
-out vec3 norm;
 out vec3 FragPos;
 out vec2 texCoord;
 vec3 pos2;
@@ -38,7 +37,6 @@ void main()
     //dv_dz = vec3(0.0, amplitude*cos(frequency * position.z+t/timestep) * frequency, 1.0);
     dv_dz = vec3(0.0, 48*sin(5*position.x+t/timestep)*sin(10*position.x+t/timestep)*sin(20*position.x+t/timestep)*cos(10*position.z + t/timestep)*cos(20*position.z + t/timestep) ,1.0);
     n = cross(dv_dx, dv_dz);
-    norm = normalize(n);
 
     gl_Position = projection * view * model * vec4(pos2, 1.0);
     //texCoord = vec2(projection * view * model * vec4(aTexCoord, 0.0f, 1.0f));
