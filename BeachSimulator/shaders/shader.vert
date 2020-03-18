@@ -21,7 +21,7 @@ vec3 pos2;
 
 float frequency = 40.0;
 float amplitude = 1.0;
-float timestep = 1000.0;
+float timestep = 300.0;
 vec3 dv_dx;
 vec3 dv_dz;
 vec3 n;
@@ -30,21 +30,10 @@ void main()
     
     
     pos2 = position;
-    pos2.y = 20.0* sin(30 * position.x + t/timestep ) * sin(15 * position.x + t/timestep )*sin(20* position.x + t/timestep ) *cos(25 * position.z + t/timestep)*cos(30 * position.z + t/timestep);
+    pos2.y = 60.0* sin(10 * position.x + t/timestep ) * sin(5 * position.x + t/timestep )*sin(20* position.x + t/timestep ) *cos(10 * position.z + t/timestep)*cos(5 * position.z + t/timestep);
     
-    //dv_dx = vec3(1.0, 2.0*3.0*cos(frequency * position.x+t/timestep) * frequency, 0.0);
-    dv_dx = vec3(1.0, 48*cos(10*position.z + t/timestep)*cos(20*position.z + t/timestep)*sin(5*position.x + t/timestep)*sin(10*position.x + t/timestep)*sin(20*position.x + t/timestep),0.0);
-    //dv_dz = vec3(0.0, amplitude*cos(frequency * position.z+t/timestep) * frequency, 1.0);
-    dv_dz = vec3(0.0, 48*sin(5*position.x+t/timestep)*sin(10*position.x+t/timestep)*sin(20*position.x+t/timestep)*cos(10*position.z + t/timestep)*cos(20*position.z + t/timestep) ,1.0);
-    n = cross(dv_dx, dv_dz);
-
     gl_Position = projection * view * model * vec4(pos2, 1.0);
-    //texCoord = vec2(projection * view * model * vec4(aTexCoord, 0.0f, 1.0f));
     texCoord = aTexCoord;
-    //texCoord = vec2(norm);
     FragPos = vec3(model * vec4(position, 1.0));
-    
-    
-    //normalizedNormal = (0.5f * normalize(n)) + 0.5f;
-    //normalizedNormal = color;
+  
 }
