@@ -33,8 +33,8 @@ const GLfloat m_TERRAIN_SCALE = 8.0f;
 const GLint m_INIT_MIN_HEIGHT = 55; // minimum for corner heights
 const GLint m_INIT_RAND_RANGE = 30; // degree of variation in the corners
 
-const GLint m_INIT_MIN_HEIGHT_OCEAN = 10;
-const GLint m_INIT_RAND_RANGE_OCEAN = 15;
+const GLint m_INIT_MIN_HEIGHT_OCEAN = 5;
+const GLint m_INIT_RAND_RANGE_OCEAN = 5;
 
 const GLint m_NOISE_RANGE = 10;
 

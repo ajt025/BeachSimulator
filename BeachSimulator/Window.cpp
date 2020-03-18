@@ -21,6 +21,12 @@ namespace
     TreeGenerator* tree2;
     TreeGenerator* tree3;
 
+    glm::mat4 tree1Model;
+    glm::mat4 tree2Model;
+    glm::mat4 tree3Model;
+    glm::mat4 particleModel;
+
+
     float tideAdjuster = 0.0f;
     float tideMove = 0.0f;
     float tideIncrement = 1.0f / 1000000.0f;
@@ -42,12 +48,10 @@ namespace
 	Object* currentObj; // The object currently displaying.
     PointCloud* ocean;
 
-	glm::vec3 eye(0.0f, 0.0f, 0.1f); // Camera position.
+	glm::vec3 eye(40.0f, 100.0f, 0.1f); // Camera position.
 	glm::vec3 center(0.0f, 0.0f, -1.0f); // The point we are looking at.
 	glm::vec3 up(0.0f, 1.0f, 0.0f); // The up direction of the camera.
-    //glm::vec3 eye(0, 50, 800); // Camera position.
-    //glm::vec3 center(0, 50, 0); // The point we are looking at.
-    //glm::vec3 up(0, 1, 0); // The up direction of the camera.
+
     unsigned int oceanTexture;
 
 	float fovy = 60.0f;
@@ -86,6 +90,7 @@ namespace
     GLuint particleOffsetLoc;
     GLuint particleColorLoc;
     GLuint particleViewLoc;
+    GLuint particleModelLoc;
     GLuint particleFlagLoc;
     //palm Locs
     GLuint palmProjectionLoc;
@@ -105,6 +110,8 @@ namespace
     GLuint palmTrunkTexture;
     GLuint palmLeavesTexture;
     GLfloat dt = 1.0f;
+
+    GLfloat oceanLevel = 0;
 
 
 // ***      WINDOW FLAGS        *** //
@@ -190,6 +197,7 @@ bool Window::initializeProgram()
     particleColorLoc = glGetUniformLocation(particleProgram, "color");
     particleOffsetLoc = glGetUniformLocation(particleProgram, "offset");
     particleViewLoc = glGetUniformLocation(particleProgram, "view");
+    particleModelLoc = glGetUniformLocation(particleProgram, "model");
     particleFlagLoc = glGetUniformLocation(particleProgram, "flag");
 
     glUseProgram(palmProgram);
@@ -212,6 +220,8 @@ bool Window::initializeProgram()
     treeViewLoc = glGetUniformLocation(treeProgram, "view");
     treeModelLoc = glGetUniformLocation(treeProgram, "model");
 
+    srand(time(0));
+    
 	return true;
 }
 
@@ -220,11 +230,17 @@ bool Window::initializeObjects()
    
     tree1 = new TreeGenerator('F', "FFX[FX[+XF]]", 'X', "FF[+XZ++X-F[+ZX]][-X++F-X]", 'Z', "[+F-X-F][++ZX]", "X", 3);
     tree2 = new TreeGenerator('F', "F[+F]F[-F][F]", 'aa', "bb", 'aaa', "bbb", "F", 1);
-    tree3 = new TreeGenerator('F', "F[-F][+F]", 'X', "-F[+F][---X]+F-F[++++X]-X", 'aaa', "bbb", "F", 1);
+    tree3 = new TreeGenerator('F', "FFF[-FFF][+FFF]", 'X', "-F[+F][---X]+F-F[++++X]-X", 'aaa', "bbb", "F", 1);
     
+    tree1Model = glm::mat4(1.0f);
+    tree2Model = glm::mat4(1.0f);
+    tree3Model = glm::mat4(1.0f);
+    
+    particleModel = glm::mat4(1.0f);
+
     tree1->iterate(5);
     tree2->iterate(5);
-    tree3->iterate(5);
+    tree3->iterate(3);
     for (GLuint i = 0; i < nr_particles; ++i) {
         particles.push_back(Particle());
     }
@@ -240,10 +256,8 @@ bool Window::initializeObjects()
     glUseProgram(program);
     ocean = new PointCloud("ocean.obj");
     currentObj = ocean;
-    oceanModel = glm::rotate(oceanModel, -0.001f, glm::vec3(1.0f, 0.0f, 0.0f));
     oceanModel = glm::scale(oceanModel, glm::vec3(500.0f, 1.0f, 300.0f));
     oceanModel = glm::translate(oceanModel, glm::vec3(0.0f, 0.0f, 2.5f));
-    //
 
     int width, height, nrChannels;
     unsigned char* data = stbi_load("ocean5.jpg", &width, &height, &nrChannels, 0);
@@ -358,10 +372,33 @@ bool Window::initializeObjects()
     
     glUseProgram(groundProgram);
     
+    // Randomization and Translation
     terrain = new Terrain();
-    GLint oceanLevel = (terrain->minHeight + terrain->maxHeight) * 0.2f;
     
-    oceanModel = glm::translate(oceanModel, glm::vec3(0.0f, (GLfloat) oceanLevel, 0.0f));
+    oceanLevel = (terrain->minHeight + terrain->maxHeight) * 0.2f;
+    oceanModel = glm::translate(oceanModel, glm::vec3(0.0f, (GLfloat) oceanLevel + 5.0f, 0.0f));
+    
+    // determine x and z of trees
+    glm::vec3 tree1Pos = glm::vec3(rand() % 2000 - 1000, 0, rand() % 2000 - 1000);
+    glm::vec3 tree2Pos = glm::vec3(rand() % 2000 - 1000, 0, rand() % 2000 - 1000);
+    glm::vec3 tree3Pos = glm::vec3(rand() % 2000 - 1000, 0, rand() % 2000 - 1000);
+    
+    GLfloat tree1Y = terrain->getHeightAt(tree1Pos);
+    GLfloat tree2Y = terrain->getHeightAt(tree2Pos);
+    GLfloat tree3Y = terrain->getHeightAt(tree3Pos);
+    
+    tree1Model = glm::translate(tree1Model, glm::vec3(tree1Pos.x, tree1Y, tree1Pos.z));
+    tree2Model = glm::translate(tree2Model, glm::vec3(tree2Pos.x, tree2Y, tree2Pos.z));
+    tree3Model = glm::translate(tree3Model, glm::vec3(tree3Pos.x, tree3Y, tree3Pos.z));
+    
+    // palm tree
+    GLfloat centerY = terrain->getHeightAt(glm::vec3(0.0f, 0.0f, 0.0f));
+    palm1->model = glm::scale(palm1->model, glm::vec3(0.2f, 0.2f, 0.2f));
+    palm1->model = glm::translate(palm1->model, glm::vec3(0.0f, centerY, 0.0f));
+    
+    // fire
+    particleModel = glm::scale(particleModel, glm::vec3(1.5f, 1.5f, 1.5f));
+    particleModel = glm::translate(particleModel, glm::vec3(5.0f, centerY, 3.0f));
     
 	return true;
 }
@@ -475,14 +512,14 @@ void Window::idleCallback()
 
         if (p.Life > 0.0f)
         {	// particle is alive, thus update
-            float val = abs(((rand() % (int)2 * p.Velocity.y) - p.Velocity.y) / 10.0f);;
+            float val = abs(((rand() % (int)2 * p.Velocity.y) - p.Velocity.y) / 2.0f);;
             p.Position.y += val;
-            p.Position.x += ((rand() % (int)2.0f * p.Velocity.x) - 0.5f * p.Velocity.x) / 5.0f;
-            p.Position.z += ((rand() % (int)2.0f * p.Velocity.x) - 0.5f * p.Velocity.x) / 5.0f;
-            if (p.Life < 250.0f) {
-                p.Position.y -= val * 0.3f;
+            p.Position.x += ((rand() % (int)2.0f * p.Velocity.x) - 0.5f * p.Velocity.x) / 1.0f;
+            p.Position.z += ((rand() % (int)2.0f * p.Velocity.x) - 0.5f * p.Velocity.x) / 1.0f;
+            if (p.Life < 450.0f) {
+                p.Position.y -= val * 0.5f;
             }
-            if (p.Life < 100.0f) {
+            if (p.Life < 300.0f) {
                 p.Position.y -= val * 0.3f;
             }
 
@@ -521,7 +558,7 @@ void Window::displayCallback(GLFWwindow* window)
 
     tideMove = tideTime - tideAdjuster;
     //std::cout << tideMove << std::endl;
-    oceanModel = glm::translate(oceanModel, glm::vec3(0.0f, 0.0f, tideMove));
+    oceanModel = glm::translate(oceanModel, glm::vec3(0.0f, -tideMove * 100.0f, tideMove));
     glUseProgram(program);
     drawOcean();
 
@@ -558,17 +595,14 @@ void Window::displayCallback(GLFWwindow* window)
     glUseProgram(treeProgram);
     glUniformMatrix4fv(treeProjectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
     glUniformMatrix4fv(treeViewLoc, 1, GL_FALSE, glm::value_ptr(view));
-    glUniformMatrix4fv(treeModelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glUniformMatrix4fv(treeModelLoc, 1, GL_FALSE, glm::value_ptr(tree1Model));
     glUniform3fv(treeColorLoc, 1, glm::value_ptr(color));
     tree1->draw();
     
-    model = glm::translate(model, glm::vec3(300.0f, 0.0f, 0.0f));
-    glUniformMatrix4fv(treeModelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glUniformMatrix4fv(treeModelLoc, 1, GL_FALSE, glm::value_ptr(tree2Model));
     tree2->draw();
-    model = glm::translate(model, glm::vec3(300.0f, 20.0f, 0.0f));
-    model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
-
-    glUniformMatrix4fv(treeModelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    
+    glUniformMatrix4fv(treeModelLoc, 1, GL_FALSE, glm::value_ptr(tree3Model));
     tree3->draw();
 
 	// Gets events, including input such as keyboard and mouse or window resizing.
@@ -666,6 +700,34 @@ void Window::move(Direction direction) {
 void Window::regenerateTerrain() {
     delete terrain;
     terrain = new Terrain();
+    
+    oceanLevel = (terrain->minHeight + terrain->maxHeight) * 0.2f;
+    
+    oceanModel = glm::scale(glm::mat4(1.0f), glm::vec3(500.0f, 1.0f, 300.0f));
+    oceanModel = glm::translate(oceanModel, glm::vec3(0.0f, oceanLevel + 5.0f, 2.5f));
+    
+    // trees
+    // determine x and z of trees
+    glm::vec3 tree1Pos = glm::vec3(rand() % 2000 - 1000, 0, rand() % 2000 - 1000);
+    glm::vec3 tree2Pos = glm::vec3(rand() % 2000 - 1000, 0, rand() % 2000 - 1000);
+    glm::vec3 tree3Pos = glm::vec3(rand() % 2000 - 1000, 0, rand() % 2000 - 1000);
+    
+    GLfloat tree1Y = terrain->getHeightAt(tree1Pos);
+    GLfloat tree2Y = terrain->getHeightAt(tree2Pos);
+    GLfloat tree3Y = terrain->getHeightAt(tree3Pos);
+    
+    tree1Model = glm::translate(glm::mat4(1.0f), glm::vec3(tree1Pos.x, tree1Y, tree1Pos.z));
+    tree2Model = glm::translate(glm::mat4(1.0f), glm::vec3(tree2Pos.x, tree2Y, tree2Pos.z));
+    tree3Model = glm::translate(glm::mat4(1.0f), glm::vec3(tree3Pos.x, tree3Y, tree3Pos.z));
+    
+    // palm tree
+    GLfloat centerY = terrain->getHeightAt(glm::vec3(0.0f, 0.0f, 0.0f));
+    palm1->model = glm::scale(glm::mat4(1.0f), glm::vec3(0.2f, 0.2f, 0.2f));
+    palm1->model = glm::translate(palm1->model, glm::vec3(0.0f, centerY, 0.0f));
+    
+    // fire
+    particleModel = glm::scale(glm::mat4(1.0f), glm::vec3(1.5f, 1.5f, 1.5f));
+    particleModel = glm::translate(particleModel, glm::vec3(5.0f, centerY, 3.0f));
 }
 
 // Not using texture.cpp, OpenGL version of cubemap loading
@@ -728,11 +790,12 @@ void Window::RespawnParticle(Particle& particle, glm::vec3 offset)
     particle.Position = glm::vec3(random1, abs(random2), abs(random3)) + offset;
 
     particle.Color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-    particle.Life = 300.0f;
+    particle.Life = 500.0f;
     particle.Velocity = glm::vec3(1.0f, 1.0f, 1.0f);
 }
 
 void Window::drawParticles() {
+    
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
     glUniform1i(particleFlagLoc, 1);
     for (Particle particle : particles)
@@ -743,7 +806,9 @@ void Window::drawParticles() {
             glUniform4fv(particleColorLoc, 1, glm::value_ptr(particle.Color));
             glUniformMatrix4fv(particleProjectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
             glUniformMatrix4fv(particleViewLoc, 1, GL_FALSE, glm::value_ptr(view));
+            glUniformMatrix4fv(particleModelLoc, 1, GL_FALSE, glm::value_ptr(particleModel));
 
+            
             glBindVertexArray(particleVAO);
             glDrawArrays(GL_TRIANGLES, 0, 6);
             glBindVertexArray(0);
@@ -783,14 +848,10 @@ void Window::drawOcean() {
 }
 
 void Window::drawPalmTree() {
-    glm::mat4 model = palm1->getModel();
-    glm::mat4 model1 = glm::translate(model, glm::vec3(0.0f, 0.0f, -500.0f));
-    model1 = glm::scale(model1, glm::vec3(0.2f, 0.2f, 0.2f));
-    glm::vec3 color = palm1->getColor();
     glUniformMatrix4fv(palmProjectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
     glUniformMatrix4fv(palmViewLoc, 1, GL_FALSE, glm::value_ptr(view));
-    glUniformMatrix4fv(palmModelLoc, 1, GL_FALSE, glm::value_ptr(model1));
-    glUniform3fv(palmColorLoc, 1, glm::value_ptr(color));
+    glUniformMatrix4fv(palmModelLoc, 1, GL_FALSE, glm::value_ptr(palm1->getModel()));
+    glUniform3fv(palmColorLoc, 1, glm::value_ptr(palm1->getColor()));
 
     glBindTexture(GL_TEXTURE_2D, palmTrunkTexture);
     palm1->draw();

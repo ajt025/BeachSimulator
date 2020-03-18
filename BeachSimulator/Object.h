@@ -15,10 +15,10 @@
 
 class Object
 {
-protected:
-	glm::mat4 model;
-	glm::vec3 color;
 public:
+    glm::mat4 model;
+    glm::vec3 color;
+    
 	glm::mat4 getModel() { return model; }
 	glm::vec3 getColor() { return color; }
 
