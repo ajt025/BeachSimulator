@@ -55,7 +55,6 @@ Terrain::Terrain() {
     
     // LOAD JPGs
     glGenTextures(1, &texID);
-    glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, texID);
     
     int width, height, nrChannels;
@@ -87,6 +86,7 @@ Terrain::~Terrain() {
 
 void Terrain::render() {
     glBindVertexArray(vao);
+    glBindTexture(GL_TEXTURE_2D, texID);
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 }
