@@ -30,7 +30,7 @@ void main()
     
     
     pos2 = position;
-    pos2.y = 75.0* sin(30 * position.x + t/timestep ) * sin(15 * position.x + t/timestep )*sin(20* position.x + t/timestep ) *cos(25 * position.z + t/timestep)*cos(30 * position.z + t/timestep);
+    pos2.y = 20.0* sin(30 * position.x + t/timestep ) * sin(15 * position.x + t/timestep )*sin(20* position.x + t/timestep ) *cos(25 * position.z + t/timestep)*cos(30 * position.z + t/timestep);
     
     //dv_dx = vec3(1.0, 2.0*3.0*cos(frequency * position.x+t/timestep) * frequency, 0.0);
     dv_dx = vec3(1.0, 48*cos(10*position.z + t/timestep)*cos(20*position.z + t/timestep)*sin(5*position.x + t/timestep)*sin(10*position.x + t/timestep)*sin(20*position.x + t/timestep),0.0);

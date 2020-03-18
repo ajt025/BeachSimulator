@@ -18,6 +18,7 @@
 #include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include <stdio.h>
 #include <iostream>
@@ -25,29 +26,31 @@
 #include <cmath>
 #include <cstdlib>
 
-const GLint m_TERRAIN_LENGTH = 65; // 2^n + 1 = length of heightmap
+const GLint m_TERRAIN_LENGTH = 257; // 2^n + 1 = length of heightmap
+const GLfloat m_TERRAIN_SCALE = 8.0f;
 
-const GLint m_INIT_MIN_HEIGHT = 5; // minimum for corner heights
-const GLint m_INIT_RAND_RANGE = 5; // degree of variation in the corners
+const GLint m_INIT_MIN_HEIGHT = 55; // minimum for corner heights
+const GLint m_INIT_RAND_RANGE = 30; // degree of variation in the corners
 
-const GLint m_INIT_MIN_HEIGHT_OCEAN = 0;
-const GLint m_INIT_RAND_RANGE_OCEAN = 10;
+const GLint m_INIT_MIN_HEIGHT_OCEAN = 10;
+const GLint m_INIT_RAND_RANGE_OCEAN = 15;
 
-const GLint m_NOISE_RANGE = 1;
+const GLint m_NOISE_RANGE = 10;
 
-const GLfloat m_MAP_HEIGHT_SCALE = 5.0f;
+const GLfloat m_MAP_HEIGHT_SCALE = 15.0f;
 const GLfloat m_MAP_BLOCK_SCALE = 1.0f;
 
 
 class Terrain {
 public:
     GLint heightmap[m_TERRAIN_LENGTH][m_TERRAIN_LENGTH] = {0}; // always a Square terrain
+    glm::mat4 model;
+    
     GLuint vao;
     GLuint vboVertex;
     GLuint vboTex;
     GLuint vboNorm;
     GLuint eboIndex;
-    
     GLuint texID;
     
     GLint primitiveRestartIndex;

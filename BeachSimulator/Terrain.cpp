@@ -11,6 +11,11 @@
 
 Terrain::Terrain() {
     srand(static_cast<unsigned>(time(0)));
+    model = glm::mat4(1.0f);
+    
+    // Scaling + translation
+    model = glm::scale(model, glm::vec3(m_TERRAIN_SCALE));
+    model = glm::translate(model, glm::vec3(0.0f, 0.0f, -50.0f));
     
     // init corners w/ rand values
     heightmap[0][0] = m_INIT_MIN_HEIGHT + (rand() % m_INIT_RAND_RANGE); // top left
@@ -122,7 +127,7 @@ GLfloat Terrain::getHeightAt(const glm::vec3& position) {
     // to get the position in terrain local space
 
     // NOTE ** glm::mat4 must be change to inverseLocalToWorld if not creating at origin
-    glm::vec3 terrainPos = glm::vec3( glm::mat4(1.0f) * glm::vec4(position, 1.0f) );
+    glm::vec3 terrainPos = glm::vec3(glm::inverse(model) * glm::vec4(position, 1.0f));
     glm::vec3 invBlockScale( 1.0f/m_MAP_BLOCK_SCALE, 0.0f, 1.0f/m_MAP_BLOCK_SCALE );
 
     // Calculate an offset and scale to get the vertex indices
@@ -163,7 +168,7 @@ GLfloat Terrain::getHeightAt(const glm::vec3& position) {
        // Convert back to world-space by multiplying by the terrain's world matrix
         
         // NOTE ** change mat4 to inverseLocalWorldMat if not at origin
-       heightPos = glm::vec3(glm::mat4(1.0f) * glm::vec4(heightPos, 1));
+       heightPos = glm::vec3(model * glm::vec4(heightPos, 1));
        height = heightPos.y;
     }
 
@@ -200,10 +205,10 @@ void Terrain::setupPositions() {
     printf("Max Height: %d \nMin Height: %d\n", maxHeight, minHeight);
 
     
-//  -- print vertices -- //
-    for (int i = 0; i < vertices.size(); ++i) {
-        std::cout << vertices[i].x << " " << vertices[i].y << " " << vertices[i].z << std::endl;
-    }
+////  -- print vertices -- //
+//    for (int i = 0; i < vertices.size(); ++i) {
+//        std::cout << vertices[i].x << " " << vertices[i].y << " " << vertices[i].z << std::endl;
+//    }
             
     glBindBuffer(GL_ARRAY_BUFFER, vboVertex);
     glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
@@ -377,6 +382,9 @@ void Terrain::diamondStep(GLint x, GLint z, GLint reach) {
 }
 
 inline float Terrain::random(GLint range) {
+    // option 1: range-based random
     return (rand() % (range * 2)) - range;
+    
+    // option 2: self-defined
 //    return (rand() % (m_NOISE_RANGE * 2)) - m_NOISE_RANGE;
 }

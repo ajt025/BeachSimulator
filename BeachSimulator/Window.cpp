@@ -49,7 +49,6 @@ namespace
 
     // Terrain
     Terrain* terrain;
-    glm::mat4 terrainModel = glm::mat4(1.0f);
     GLuint projectionGroundLoc;
     GLuint viewGroundLoc;
     GLuint modelGroundLoc;
@@ -95,63 +94,6 @@ namespace
 // ***      WINDOW FLAGS        *** //
     GLint sandFlag = 1;
 // ***      WINDOW CONSTANTS     *** //
-
-    // faceBoxes strings
-    const std::vector<std::string> boxFaces = {
-        "skybox/top4.jpg",
-        "skybox/top4.jpg",
-        "skybox/top5.jpg",
-        "skybox/top4.jpg",
-        "skybox/top4.jpg",
-        "skybox/top4.jpg"
-    };
-
-    // Predefined skybox vertices
-    
-    const float skyboxVertices[] = {
-        // positions
-        -1000.0f,  1000.0f, -1000.0f,
-        -1000.0f, -1000.0f, -1000.0f,
-         1000.0f, -1000.0f, -1000.0f,
-         1000.0f, -1000.0f, -1000.0f,
-         1000.0f,  1000.0f, -1000.0f,
-        -1000.0f,  1000.0f, -1000.0f,
-
-        -1000.0f, -1000.0f,  1000.0f,
-        -1000.0f, -1000.0f, -1000.0f,
-        -1000.0f,  1000.0f, -1000.0f,
-        -1000.0f,  1000.0f, -1000.0f,
-        -1000.0f,  1000.0f,  1000.0f,
-        -1000.0f, -1000.0f,  1000.0f,
-
-         1000.0f, -1000.0f, -1000.0f,
-         1000.0f, -1000.0f,  1000.0f,
-         1000.0f,  1000.0f,  1000.0f,
-         1000.0f,  1000.0f,  1000.0f,
-         1000.0f,  1000.0f, -1000.0f,
-         1000.0f, -1000.0f, -1000.0f,
-
-        -1000.0f, -1000.0f,  1000.0f,
-        -1000.0f,  1000.0f,  1000.0f,
-         1000.0f,  1000.0f,  1000.0f,
-         1000.0f,  1000.0f,  1000.0f,
-         1000.0f, -1000.0f,  1000.0f,
-        -1000.0f, -1000.0f,  1000.0f,
-
-        -1000.0f,  1000.0f, -1000.0f,
-         1000.0f,  1000.0f, -1000.0f,
-         1000.0f,  1000.0f,  1000.0f,
-         1000.0f,  1000.0f,  1000.0f,
-        -1000.0f,  1000.0f,  1000.0f,
-        -1000.0f,  1000.0f, -1000.0f,
-
-        -1000.0f, -1000.0f, -1000.0f,
-        -1000.0f, -1000.0f,  1000.0f,
-         1000.0f, -1000.0f, -1000.0f,
-         1000.0f, -1000.0f, -1000.0f,
-        -1000.0f, -1000.0f,  1000.0f,
-         1000.0f, -1000.0f,  1000.0f
-    };
     
 const GLfloat m_ROTSCALE = 0.002f;
 const GLfloat m_MOVEMENTSCALE = 0.5f;
@@ -260,8 +202,8 @@ bool Window::initializeObjects()
     glUseProgram(program);
     ocean = new PointCloud("ocean.obj");
     currentObj = ocean;
-    oceanModel = glm::scale(oceanModel, glm::vec3(500.0f, 1.0f, 1000.0f));
-    oceanModel = glm::translate(oceanModel, glm::vec3(0.0f, -100.0f, -0.0f));
+    oceanModel = glm::scale(oceanModel, glm::vec3(500.0f, 1.0f, 300.0f));
+    oceanModel = glm::translate(oceanModel, glm::vec3(0.0f, 0.0f, 2.5f));
     //oceanModel = glm::translate(oceanModel, glm::vec3(0.0f, -5.0f, -5.0f));
 
     int width, height, nrChannels;
@@ -291,13 +233,16 @@ bool Window::initializeObjects()
     // skybox VAO
     glGenVertexArrays(1, &skyboxVAO);
     glGenBuffers(1, &skyboxVBO);
+    
     glBindVertexArray(skyboxVAO);
     glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+    
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     //glEnable(GL_CULL_FACE);
     //glCullFace(GL_BACK);
+    
     // Skybox textures
     cubemapTexture = loadCubemap(boxFaces);
     glBindVertexArray(0);
@@ -375,7 +320,9 @@ bool Window::initializeObjects()
     glUseProgram(groundProgram);
     
     terrain = new Terrain();
-    terrainModel = glm::scale(terrainModel, glm::vec3(m_TERRAIN_SCALE));
+    GLint oceanLevel = (terrain->minHeight + terrain->maxHeight) * 0.2f;
+    
+    oceanModel = glm::translate(oceanModel, glm::vec3(0.0f, (GLfloat) oceanLevel, 0.0f));
     
 	return true;
 }
@@ -521,24 +468,13 @@ void Window::displayCallback(GLFWwindow* window)
     waveTime = waveTime + 1.0f;
     glUseProgram(program);
     drawOcean();
-
-    
-    // Specify the values of the uniform variables we are going to use.
-
-    glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(oceanModel));
-    glUniform3fv(colorLoc, 1, glm::value_ptr(oceanColor));
-    glUniform1f(timeLoc, waveTime);
-
-    currentObj->draw();
     
     // Ground Shader Drawing
     glUseProgram(groundProgram);
     
     glUniformMatrix4fv(projectionGroundLoc, 1, GL_FALSE, glm::value_ptr(projection));
     glUniformMatrix4fv(viewGroundLoc, 1, GL_FALSE, glm::value_ptr(view));
-    glUniformMatrix4fv(modelGroundLoc, 1, GL_FALSE, glm::value_ptr(terrainModel));
+    glUniformMatrix4fv(modelGroundLoc, 1, GL_FALSE, glm::value_ptr(terrain->model));
     glUniform1i(sandFlagLoc, sandFlag);
     
     terrain->render();
