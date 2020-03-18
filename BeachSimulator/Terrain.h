@@ -25,6 +25,7 @@
 #include <vector>
 #include <cmath>
 #include <cstdlib>
+#include <ctime>
 
 const GLint m_TERRAIN_LENGTH = 257; // 2^n + 1 = length of heightmap
 const GLfloat m_TERRAIN_SCALE = 8.0f;

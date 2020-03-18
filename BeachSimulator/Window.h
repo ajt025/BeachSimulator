@@ -16,12 +16,13 @@
 #include <vector>
 #include <string>
 #include <memory>
-
 #include "Object.h"
 #include "Cube.h"
 #include "shader.h"
 #include "PointCloud.h"
 #include "Terrain.h"
+#include <stack>
+#include "TreeGenerator.h"
 
 // faceBoxes strings
 const std::vector<std::string> boxFaces = {
@@ -100,6 +101,8 @@ public:
         Particle()
             : Position(0.0f), Velocity(0.0f), Color(1.0f), Life(0.0f) { }
     };
+
+    
 
 	static bool initializeProgram();
 	static bool initializeObjects();

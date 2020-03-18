@@ -11,12 +11,26 @@
  */
 namespace
 {
+    GLuint treeViewLoc;
+    GLuint treeProjectionLoc;
+    GLuint treeColorLoc;
+    GLuint treeModelLoc;
+    GLuint treeProgram;
+    
+    TreeGenerator* tree1; 
+    TreeGenerator* tree2;
+    TreeGenerator* tree3;
 
+    float tideAdjuster = 0.0f;
+    float tideMove = 0.0f;
+    float tideIncrement = 1.0f / 1000000.0f;
+    float tideTime = 1.0f / 100000.0f;
 	int width, height;
 	std::string windowTitle("Beach Simulator");
 
     glm::vec3 oceanColor = glm::vec3(0.0f, 0.3f, 0.9f);
     glm::mat4 oceanModel = glm::mat4(1);
+   
     std::vector<Window::Particle> particles;
     GLuint lastUsedParticle = 0;
     GLuint nr_particles = 2000;
@@ -31,7 +45,9 @@ namespace
 	glm::vec3 eye(0.0f, 0.0f, 0.1f); // Camera position.
 	glm::vec3 center(0.0f, 0.0f, -1.0f); // The point we are looking at.
 	glm::vec3 up(0.0f, 1.0f, 0.0f); // The up direction of the camera.
-    
+    //glm::vec3 eye(0, 50, 800); // Camera position.
+    //glm::vec3 center(0, 50, 0); // The point we are looking at.
+    //glm::vec3 up(0, 1, 0); // The up direction of the camera.
     unsigned int oceanTexture;
 
 	float fovy = 60.0f;
@@ -115,6 +131,8 @@ bool Window::initializeProgram()
     // Create ground plane shader program
     groundProgram = LoadShaders("shaders/ground.vert", "shaders/ground.frag");
     
+    treeProgram = LoadShaders("shaders/shaderTree.vert", "shaders/shaderTree.frag");
+
 	// Check the shader program.
 	if (!program)
 	{
@@ -143,6 +161,12 @@ bool Window::initializeProgram()
     if (!groundProgram)
     {
         std::cerr << "Failed to initialize ground program" << std::endl;
+        return false;
+    }
+
+    if (!groundProgram)
+    {
+        std::cerr << "Failed to initialize tree program" << std::endl;
         return false;
     }
 
@@ -181,12 +205,26 @@ bool Window::initializeProgram()
     modelGroundLoc = glGetUniformLocation(groundProgram, "modelGround");
     sandFlagLoc = glGetUniformLocation(groundProgram, "sandFlag");
 
+    glUseProgram(treeProgram);
+
+    treeProjectionLoc = glGetUniformLocation(treeProgram, "projection");
+    treeColorLoc = glGetUniformLocation(treeProgram, "color");
+    treeViewLoc = glGetUniformLocation(treeProgram, "view");
+    treeModelLoc = glGetUniformLocation(treeProgram, "model");
+
 	return true;
 }
 
 bool Window::initializeObjects()
 {
-
+   
+    tree1 = new TreeGenerator('F', "FFX[FX[+XF]]", 'X', "FF[+XZ++X-F[+ZX]][-X++F-X]", 'Z', "[+F-X-F][++ZX]", "X", 3);
+    tree2 = new TreeGenerator('F', "F[+F]F[-F][F]", 'aa', "bb", 'aaa', "bbb", "F", 1);
+    tree3 = new TreeGenerator('F', "F[-F][+F]", 'X', "-F[+F][---X]+F-F[++++X]-X", 'aaa', "bbb", "F", 1);
+    
+    tree1->iterate(5);
+    tree2->iterate(5);
+    tree3->iterate(5);
     for (GLuint i = 0; i < nr_particles; ++i) {
         particles.push_back(Particle());
     }
@@ -202,9 +240,10 @@ bool Window::initializeObjects()
     glUseProgram(program);
     ocean = new PointCloud("ocean.obj");
     currentObj = ocean;
+    oceanModel = glm::rotate(oceanModel, -0.001f, glm::vec3(1.0f, 0.0f, 0.0f));
     oceanModel = glm::scale(oceanModel, glm::vec3(500.0f, 1.0f, 300.0f));
     oceanModel = glm::translate(oceanModel, glm::vec3(0.0f, 0.0f, 2.5f));
-    //oceanModel = glm::translate(oceanModel, glm::vec3(0.0f, -5.0f, -5.0f));
+    //
 
     int width, height, nrChannels;
     unsigned char* data = stbi_load("ocean5.jpg", &width, &height, &nrChannels, 0);
@@ -267,7 +306,7 @@ bool Window::initializeObjects()
     // Set mesh attributes
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (GLvoid*)0);
-
+    glBindVertexArray(0);
 
 
 
@@ -339,6 +378,7 @@ void Window::cleanUp()
     glDeleteProgram(particleProgram);
     glDeleteProgram(palmProgram);
     glDeleteProgram(groundProgram);
+    glDeleteProgram(treeProgram);
 }
 
 GLFWwindow* Window::createWindow(int width, int height)
@@ -460,18 +500,34 @@ void Window::displayCallback(GLFWwindow* window)
     glUseProgram(palmProgram);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     drawPalmTree();
-    
+
 
     glUseProgram(particleProgram);
     drawParticles();
 
     waveTime = waveTime + 1.0f;
+
+    //std::cout << tideTime << std::endl;
+    tideTime = tideTime + tideIncrement;
+
+    if (tideTime > 0.0005) {
+        tideIncrement = -1 * tideIncrement;
+        tideAdjuster = 0.0005f;
+    }
+    else if (tideTime < 1.0f / 100000.0f) {
+        tideIncrement = -1 * tideIncrement;
+        tideAdjuster = 0.0f;
+    }
+
+    tideMove = tideTime - tideAdjuster;
+    //std::cout << tideMove << std::endl;
+    oceanModel = glm::translate(oceanModel, glm::vec3(0.0f, 0.0f, tideMove));
     glUseProgram(program);
     drawOcean();
-    
-    // Ground Shader Drawing
+
+    //Ground Shader Drawing
     glUseProgram(groundProgram);
-    
+
     glUniformMatrix4fv(projectionGroundLoc, 1, GL_FALSE, glm::value_ptr(projection));
     glUniformMatrix4fv(viewGroundLoc, 1, GL_FALSE, glm::value_ptr(view));
     glUniformMatrix4fv(modelGroundLoc, 1, GL_FALSE, glm::value_ptr(terrain->model));
@@ -484,7 +540,7 @@ void Window::displayCallback(GLFWwindow* window)
     glDepthFunc(GL_LEQUAL);
     glUseProgram(skyboxProgram);
 
-    glUniformMatrix4fv(projectionSkyLoc, 1, GL_FALSE, glm::value_ptr(projection));
+   glUniformMatrix4fv(projectionSkyLoc, 1, GL_FALSE, glm::value_ptr(projection));
     glUniformMatrix4fv(viewSkyLoc, 1, GL_FALSE, glm::value_ptr(view));
 
     glBindVertexArray(skyboxVAO);
@@ -496,6 +552,25 @@ void Window::displayCallback(GLFWwindow* window)
     glBindVertexArray(0);
     glDepthFunc(GL_LESS);
     
+    //glm::vec3 color = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 color = glm::vec3(101.0f / 255.0f, 67.0f / 255.0f, 33.0f / 255.0f);
+    glm::mat4 model = glm::mat4(1.0f);
+    glUseProgram(treeProgram);
+    glUniformMatrix4fv(treeProjectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(treeViewLoc, 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(treeModelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glUniform3fv(treeColorLoc, 1, glm::value_ptr(color));
+    tree1->draw();
+    
+    model = glm::translate(model, glm::vec3(300.0f, 0.0f, 0.0f));
+    glUniformMatrix4fv(treeModelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    tree2->draw();
+    model = glm::translate(model, glm::vec3(300.0f, 20.0f, 0.0f));
+    model = glm::scale(model, glm::vec3(10.0f, 10.0f, 10.0f));
+
+    glUniformMatrix4fv(treeModelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    tree3->draw();
+
 	// Gets events, including input such as keyboard and mouse or window resizing.
 	glfwPollEvents();
 	// Swap buffers.
@@ -722,3 +797,5 @@ void Window::drawPalmTree() {
     glBindTexture(GL_TEXTURE_2D, palmLeavesTexture);
     palm2->draw();
 }
+
+
